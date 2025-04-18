@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>SSE demo</title>
+    </head>
+    <body>
+        <h1>Using EventSource to get SSE from server:</h1>
+        <div id="timeid"></div>
+
+        <h1>Using @microsoft/fetch-event-source post data to server:</h1>
+        <input type="text" id="input" placeholder="type text here..." />
+        <button id="btn">submit</button>
+        <div id="post-output"></div>
+
+        <script type="module">
+            import { fetchEventSource } from "https://cdn.jsdelivr.net/npm/@microsoft/fetch-event-source@2.0.1/+esm"
+            let controller = new AbortController()
+
+            const sendpost = async () => {
+                const input = document.getElementById("input").value
+                await fetchEventSource("http://localhost:3000/api/sse", {
+                    method: "POST",
+                    headers: {
+                        Accept: "text/event-stream",
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        name: input,
+                    }),
+                    openWhenHidden: true,
+                    onopen(response) {
+                        if (response.ok && response.status === 200) {
+                            console.log("Connection made ", response)
+                        } else {
+                            console.log("Connection failed ", response)
+                            controller.abort()
+                        }
+                    },
+                    onmessage: (event) => {
+                        console.log(event.data)
+                        const div = document.getElementById("post-output")
+                        div.innerHTML = ""
+                        const p = document.createElement("p")
+                        p.textContent = `From post data: ${event.data}`
+                        div.appendChild(p)
+                    },
+                    signal: controller.signal,
+                })
+            }
+            const btn = document.getElementById("btn")
+            btn.addEventListener("click", () => {
+                controller.abort() // terminate the previous connection
+                controller = new AbortController() // assign a new controller
+                sendpost()
+            })
+        </script>
+
+        <script>
+            function updateTime(message) {
+                const div = document.getElementById("timeid")
+                div.innerHTML = ""
+                const p = document.createElement("p")
+                p.textContent = "Current time: " + message
+                div.appendChild(p)
+            }
+            const apiurl = `http://localhost:3000/api/sse`
+
+            const sse = new EventSource(`${apiurl}`)
+
+            sse.onmessage = function (event) {
+                updateTime(event.data)
+            }
+            sse.onerror = function () {
+                console.log("error")
+                sse.close()
+            }
+        </script>
+    </body>
+</html>
