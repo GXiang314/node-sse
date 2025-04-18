@@ -78,6 +78,14 @@ app.post(
     }
 )
 
+// Serve static files from the 'public' directory
+app.use(express.static('public'))
+
+// Serve the index.html file at the root URL
+app.get('/', (req, res) => {
+    res.sendFile('index.html', { root: 'public' })
+})
+
 app.listen(3000, () => {
-    console.log("Server is listening on port 3000")
+    console.log("Server is listening on port http://localhost:3000")
 })
